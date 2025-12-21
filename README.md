@@ -1,7 +1,7 @@
 # Reezma HTML/CSS Logo
 
 <p align="center">
-  <img src="https://github.com/reezmahanan/Reezma-logo/blob/main/Screenshot%202025-09-09%20211904.png" alt="Reezma Logo Preview" width="300"/>
+  <img src="https://github.com/reezmahanan/Reezma-logo/blob/main/logo.png"/>
 </p>
 
 <p align="center">
