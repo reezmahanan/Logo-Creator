@@ -13,11 +13,33 @@ import {
 } from 'lucide-react';
 import './App.css';
 
+const LOCAL_STORAGE_KEY = 'reezma-logo-creator-config';
+
+const getInitialConfig = (): LogoConfig => {
+  const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error('Error loading saved logo config:', e);
+    }
+  }
+  return DEFAULT_CONFIG;
+};
+
 function App() {
-  const [config, setConfig] = useState<LogoConfig>(DEFAULT_CONFIG);
-  const [activePresetId, setActivePresetId] = useState<string | null>('reezma-original');
+  const [config, setConfig] = useState<LogoConfig>(getInitialConfig);
+  const [activePresetId, setActivePresetId] = useState<string | null>(() => {
+    // If there is saved config, clear active preset highlight so it shows custom state
+    return localStorage.getItem(LOCAL_STORAGE_KEY) ? null : 'reezma-original';
+  });
   const [showGrid, setShowGrid] = useState(false);
   const [zoom, setZoom] = useState(1);
+
+  // Sync to local storage
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(config));
+  }, [config]);
   
   // History state for Undo/Redo
   const [history, setHistory] = useState<LogoConfig[]>([DEFAULT_CONFIG]);
