@@ -1,4 +1,7 @@
 # Reezma Tech Logo Creator 
+<p align="center">
+  <img src="./screenshot.jpg" width="800" alt="Reezma Tech Logo Creator Screen Mockup"/>
+</p>
 
 An interactive, responsive, and premium web application built with **React, TypeScript, and Vanilla CSS** to design, customize, and export professional developer and IT logos. This project enables users to create vector-perfect logos with custom styling, custom shapes, code-inspired decorations, animations, and icons.
 
