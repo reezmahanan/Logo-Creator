@@ -70,11 +70,27 @@ export interface LogoConfig {
 
   // Outer Wrapper Settings
   canvasColor: string; // Background of the preview area
+
+  // Brand Text Split Options
+  companyNameSplit: boolean;
+  companyNamePart1: string;
+  companyNamePart2: string;
+  companyNameColorPart2: string;
+  companyNameFontPart2: string;
+  companyNameWeightPart2: string;
+  companyNameGradientPart2: boolean;
+  companyNameGradientStartPart2: string;
+  companyNameGradientEndPart2: string;
+
+  // Custom SVG Icon uploader options
+  customIconSvg: string; // Raw inner HTML of SVG
+  customIconViewBox: string; // ViewBox of uploaded SVG
 }
 
 export interface Preset {
   id: string;
   name: string;
   description: string;
+  category?: 'classic' | 'cyberpunk' | 'corporate' | 'creative';
   config: LogoConfig;
 }

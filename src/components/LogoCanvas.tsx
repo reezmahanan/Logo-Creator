@@ -55,8 +55,11 @@ export const LogoCanvas: React.FC<LogoCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Auto-calculate dimensions of the Logo Box
+  const companyNameText = config.companyNameSplit
+    ? `${config.companyNamePart1}${config.companyNamePart2}`
+    : config.companyName;
   const charWidth = config.companyNameSize * 0.58; // Approximation based on font size
-  const textLength = config.companyName.length * charWidth;
+  const textLength = companyNameText.length * charWidth;
   const bracketsWidth = config.bracketsShow
     ? config.bracketsType === 'angle'
       ? config.companyNameSize * 1.5 // < and />
@@ -98,7 +101,6 @@ export const LogoCanvas: React.FC<LogoCanvasProps> = ({
   // Renders the icon path/SVG elements directly inside SVG
   const renderIcon = (x: number, y: number) => {
     if (!config.iconShow) return null;
-    const IconComponent = ICON_MAP[config.iconName] || Lucide.Terminal;
     
     // Rotation and animation styles
     let transformStr = `translate(${x}, ${y}) rotate(${config.iconRotation})`;
@@ -107,6 +109,27 @@ export const LogoCanvas: React.FC<LogoCanvasProps> = ({
     if (config.iconAnimation === 'pulse') className += ' animate-pulse-slow';
     if (config.iconAnimation === 'float') className += ' animate-float-slow';
 
+    if (config.iconName === 'custom') {
+      if (!config.customIconSvg) return null;
+      return (
+        <g transform={transformStr} className={className}>
+          <g transform={`translate(${-config.iconSize / 2}, ${-config.iconSize / 2})`}>
+            <svg
+              width={config.iconSize}
+              height={config.iconSize}
+              viewBox={config.customIconViewBox || "0 0 24 24"}
+              fill={config.iconColor}
+              color={config.iconColor}
+              stroke={config.iconColor}
+              style={{ display: 'block' }}
+              dangerouslySetInnerHTML={{ __html: config.customIconSvg }}
+            />
+          </g>
+        </g>
+      );
+    }
+
+    const IconComponent = ICON_MAP[config.iconName] || Lucide.Terminal;
     return (
       <g transform={transformStr} className={className}>
         <g transform={`translate(${-config.iconSize / 2}, ${-config.iconSize / 2})`}>
@@ -369,7 +392,6 @@ export const LogoCanvas: React.FC<LogoCanvasProps> = ({
                 <stop offset="100%" stopColor={config.bgColorEnd} />
               </radialGradient>
             ) : null}
-
             {/* Text Gradients */}
             {config.companyNameGradient && (
               <linearGradient id="text-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -378,7 +400,12 @@ export const LogoCanvas: React.FC<LogoCanvasProps> = ({
               </linearGradient>
             )}
 
-            {/* Glow Shadow Filters */}
+            {config.companyNameGradientPart2 && (
+              <linearGradient id="text-gradient-part2" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor={config.companyNameGradientStartPart2} />
+                <stop offset="100%" stopColor={config.companyNameGradientEndPart2} />
+              </linearGradient>
+            )}            {/* Glow Shadow Filters */}
             <filter id="box-glow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation={config.shadowBlur / 3} result="blur" />
               <feOffset dx={config.shadowOffsetX} dy={config.shadowOffsetY} />
@@ -502,12 +529,36 @@ export const LogoCanvas: React.FC<LogoCanvasProps> = ({
               <text
                 x={textX}
                 y={textY}
-                fill={config.companyNameGradient ? 'url(#text-gradient)' : config.companyNameColor}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 style={fontStyle}
               >
-                {config.companyName}
+                {config.companyNameSplit ? (
+                  <>
+                    <tspan
+                      fill={config.companyNameGradient ? 'url(#text-gradient)' : config.companyNameColor}
+                      style={{
+                        fontWeight: config.companyNameWeight,
+                        fontFamily: config.companyNameFont,
+                      }}
+                    >
+                      {config.companyNamePart1}
+                    </tspan>
+                    <tspan
+                      fill={config.companyNameGradientPart2 ? 'url(#text-gradient-part2)' : config.companyNameColorPart2}
+                      style={{
+                        fontWeight: config.companyNameWeightPart2,
+                        fontFamily: config.companyNameFontPart2,
+                      }}
+                    >
+                      {config.companyNamePart2}
+                    </tspan>
+                  </>
+                ) : (
+                  <tspan fill={config.companyNameGradient ? 'url(#text-gradient)' : config.companyNameColor}>
+                    {config.companyName}
+                  </tspan>
+                )}
               </text>
 
               {/* Right bracket */}

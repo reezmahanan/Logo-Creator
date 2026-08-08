@@ -8,7 +8,9 @@ import {
   Smile, 
   Sliders, 
   Compass, 
-  Search
+  Search,
+  Upload,
+  Wand2
 } from 'lucide-react';
 
 interface ControlPanelProps {
@@ -18,7 +20,7 @@ interface ControlPanelProps {
   onSelectPreset: (preset: Preset) => void;
 }
 
-type TabType = 'presets' | 'text' | 'icon' | 'background' | 'deco';
+type TabType = 'wizard' | 'presets' | 'text' | 'icon' | 'background' | 'deco';
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   config,
@@ -26,8 +28,20 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   activePresetId,
   onSelectPreset,
 }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('presets');
+  const [activeTab, setActiveTab] = useState<TabType>('wizard'); // Default to wizard to encourage engagement
   const [iconSearch, setIconSearch] = useState('');
+  const [presetCategory, setPresetCategory] = useState<'all' | 'classic' | 'cyberpunk' | 'corporate' | 'creative'>('all');
+
+  // Stepper Wizard states
+  const [wizardStep, setWizardStep] = useState(1);
+  const [wizSplit, setWizSplit] = useState(false);
+  const [wizCompanyName, setWizCompanyName] = useState('Reezma Tech');
+  const [wizPart1, setWizPart1] = useState('Reezma');
+  const [wizPart2, setWizPart2] = useState('Tech');
+  const [wizTagline, setWizTagline] = useState('INNOVATIVE DESIGN');
+  const [wizPersonality, setWizPersonality] = useState<'developer' | 'cyberpunk' | 'minimal' | 'luxury' | 'eco'>('developer');
+  const [wizPalette, setWizPalette] = useState<'cyan' | 'gold' | 'green' | 'pink' | 'mono'>('cyan');
+  const [wizSymbolGroup, setWizSymbolGroup] = useState<'dev' | 'infra' | 'corporate' | 'creative' | 'none'>('dev');
 
   // Fonts available
   const FONTS = [
@@ -52,6 +66,240 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     onChange({ [key]: value });
   };
 
+  const handleSvgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'image/svg+xml');
+        const svgElement = doc.querySelector('svg');
+        if (!svgElement) {
+          alert('Invalid SVG file: No <svg> tag found.');
+          return;
+        }
+
+        const viewBox = svgElement.getAttribute('viewBox') || '0 0 24 24';
+        const innerHTML = svgElement.innerHTML;
+
+        onChange({
+          iconName: 'custom',
+          customIconSvg: innerHTML,
+          customIconViewBox: viewBox,
+          iconShow: true
+        });
+      } catch (err) {
+        console.error('Error parsing SVG file:', err);
+        alert('Failed to parse SVG file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Rule-based preference generator
+  const handleGenerateLogo = () => {
+    const newConfig = { ...config };
+
+    // 1. Text configurations
+    newConfig.companyNameSplit = wizSplit;
+    newConfig.companyName = wizCompanyName;
+    newConfig.companyNamePart1 = wizPart1;
+    newConfig.companyNamePart2 = wizPart2;
+    newConfig.tagline = wizTagline;
+    newConfig.taglineShow = !!wizTagline;
+
+    // 2. Personality Styles & Fonts Mapping
+    switch (wizPersonality) {
+      case 'developer':
+        newConfig.companyNameFont = 'Courier New, monospace';
+        newConfig.companyNameFontPart2 = 'Courier New, monospace';
+        newConfig.companyNameWeight = 'bold';
+        newConfig.companyNameWeightPart2 = 'normal';
+        newConfig.bracketsShow = true;
+        newConfig.bracketsType = 'angle';
+        newConfig.cursorShow = true;
+        newConfig.bgShape = 'rectangle';
+        newConfig.borderRadius = 8;
+        newConfig.circuitShow = true;
+        newConfig.circuitPattern = 'circuit';
+        newConfig.circuitOpacity = 0.2;
+        newConfig.binaryShow = true;
+        newConfig.taglineFont = 'Courier New, monospace';
+        break;
+      case 'cyberpunk':
+        newConfig.companyNameFont = 'Orbitron, sans-serif';
+        newConfig.companyNameFontPart2 = 'Orbitron, sans-serif';
+        newConfig.companyNameWeight = '900';
+        newConfig.companyNameWeightPart2 = 'normal';
+        newConfig.bracketsShow = true;
+        newConfig.bracketsType = 'square';
+        newConfig.cursorShow = false;
+        newConfig.bgShape = 'rectangle';
+        newConfig.borderRadius = 14;
+        newConfig.circuitShow = true;
+        newConfig.circuitPattern = 'dots';
+        newConfig.circuitOpacity = 0.25;
+        newConfig.binaryShow = true;
+        newConfig.taglineFont = 'Syncopate, sans-serif';
+        newConfig.glowAnimation = true;
+        newConfig.glowDuration = 2.5;
+        break;
+      case 'minimal':
+        newConfig.companyNameFont = 'Inter, sans-serif';
+        newConfig.companyNameFontPart2 = 'Inter, sans-serif';
+        newConfig.companyNameWeight = 'bold';
+        newConfig.companyNameWeightPart2 = 'bold';
+        newConfig.bracketsShow = false;
+        newConfig.bracketsType = 'none';
+        newConfig.cursorShow = false;
+        newConfig.bgShape = 'rectangle';
+        newConfig.borderRadius = 6;
+        newConfig.circuitShow = false;
+        newConfig.binaryShow = false;
+        newConfig.taglineFont = 'Inter, sans-serif';
+        newConfig.glowAnimation = false;
+        break;
+      case 'luxury':
+        newConfig.companyNameFont = 'Cinzel, serif';
+        newConfig.companyNameFontPart2 = 'Inter, sans-serif';
+        newConfig.companyNameWeight = '900';
+        newConfig.companyNameWeightPart2 = '300';
+        newConfig.bracketsShow = false;
+        newConfig.bracketsType = 'none';
+        newConfig.cursorShow = false;
+        newConfig.bgShape = 'rectangle';
+        newConfig.borderRadius = 0;
+        newConfig.circuitShow = false;
+        newConfig.binaryShow = false;
+        newConfig.taglineFont = 'Cinzel, serif';
+        newConfig.glowAnimation = false;
+        break;
+      case 'eco':
+        newConfig.companyNameFont = 'Outfit, sans-serif';
+        newConfig.companyNameFontPart2 = 'Outfit, sans-serif';
+        newConfig.companyNameWeight = 'bold';
+        newConfig.companyNameWeightPart2 = 'normal';
+        newConfig.bracketsShow = true;
+        newConfig.bracketsType = 'curly';
+        newConfig.cursorShow = true;
+        newConfig.bgShape = 'circle';
+        newConfig.borderRadius = 40;
+        newConfig.circuitShow = true;
+        newConfig.circuitPattern = 'dots';
+        newConfig.circuitOpacity = 0.15;
+        newConfig.binaryShow = false;
+        newConfig.taglineFont = 'Outfit, sans-serif';
+        break;
+    }
+
+    // 3. Color Palettes Mapping
+    let colStart = '#ffffff';
+    let colEnd = '#03c6fc';
+    let bgStart = '#0f172a';
+    let bgEnd = '#1e293b';
+    let shadow = 'rgba(3, 198, 252, 0.4)';
+
+    switch (wizPalette) {
+      case 'cyan':
+        colStart = '#03c6fc';
+        colEnd = '#a855f7';
+        bgStart = '#0b0f19';
+        bgEnd = '#131b2e';
+        shadow = 'rgba(3, 198, 252, 0.4)';
+        break;
+      case 'gold':
+        colStart = '#dfa735';
+        colEnd = '#f8e08f';
+        bgStart = '#000000';
+        bgEnd = '#1a1a1a';
+        shadow = 'rgba(223, 167, 53, 0.3)';
+        break;
+      case 'green':
+        colStart = '#a3e635';
+        colEnd = '#10b981';
+        bgStart = '#062f21';
+        bgEnd = '#021f15';
+        shadow = 'rgba(16, 185, 129, 0.35)';
+        break;
+      case 'pink':
+        colStart = '#ff007f';
+        colEnd = '#00f0ff';
+        bgStart = '#110022';
+        bgEnd = '#05000a';
+        shadow = 'rgba(255, 0, 127, 0.5)';
+        break;
+      case 'mono':
+        colStart = '#ffffff';
+        colEnd = '#94a3b8';
+        bgStart = '#0f172a';
+        bgEnd = '#1e293b';
+        shadow = 'rgba(255, 255, 255, 0.1)';
+        break;
+    }
+
+    newConfig.companyNameGradient = true;
+    newConfig.companyNameGradientStart = colStart;
+    newConfig.companyNameGradientEnd = colEnd;
+    newConfig.companyNameColor = colStart;
+
+    newConfig.companyNameGradientPart2 = true;
+    newConfig.companyNameGradientStartPart2 = colEnd;
+    newConfig.companyNameGradientEndPart2 = colStart;
+    newConfig.companyNameColorPart2 = colEnd;
+
+    newConfig.bracketsColor = colStart;
+    newConfig.cursorColor = colEnd;
+    newConfig.taglineColor = colEnd;
+    newConfig.iconColor = colStart;
+    newConfig.circuitColor = colStart;
+    newConfig.binaryColor = `${colStart}33`; // opacity equivalent
+
+    newConfig.bgGradientType = 'linear';
+    newConfig.bgGradientAngle = 135;
+    newConfig.bgColorStart = bgStart;
+    newConfig.bgColorEnd = bgEnd;
+    newConfig.shadowColor = shadow;
+    newConfig.shadowBlur = 25;
+    newConfig.shadowOffsetY = 6;
+
+    if (wizPersonality === 'luxury' || wizPersonality === 'minimal') {
+      newConfig.bgShape = 'rectangle';
+    }
+
+    // 4. Symbols Mapping
+    newConfig.iconShow = wizSymbolGroup !== 'none';
+    if (wizSymbolGroup !== 'none') {
+      newConfig.iconRotation = 0;
+      newConfig.iconSize = 26;
+      newConfig.iconPosition = 'left';
+      
+      switch (wizSymbolGroup) {
+        case 'dev':
+          newConfig.iconName = 'Terminal';
+          break;
+        case 'infra':
+          newConfig.iconName = 'Cpu';
+          break;
+        case 'corporate':
+          newConfig.iconName = 'Shield';
+          break;
+        case 'creative':
+          newConfig.iconName = 'Zap';
+          break;
+      }
+    }
+
+    // Trigger update
+    onChange(newConfig);
+    setWizardStep(1);
+    setActiveTab('text'); // open Text tab for adjustments
+  };
+
   // Filter icons based on search query
   const filteredIcons = Object.keys(ICON_MAP).filter(name =>
     name.toLowerCase().includes(iconSearch.toLowerCase())
@@ -61,6 +309,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     <div className="sidebar">
       {/* Tabs */}
       <div className="tab-bar">
+        <button
+          className={`tab-btn ${activeTab === 'wizard' ? 'active' : ''}`}
+          onClick={() => setActiveTab('wizard')}
+          style={{ position: 'relative' }}
+        >
+          <Wand2 size={18} color="var(--accent-purple)" />
+          <span style={{ color: 'var(--accent-purple)' }}>Wizard</span>
+        </button>
         <button
           className={`tab-btn ${activeTab === 'presets' ? 'active' : ''}`}
           onClick={() => setActiveTab('presets')}
@@ -101,34 +357,297 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       {/* Tab Content */}
       <div className="tab-content">
         
+        {/* WIZARD TAB */}
+        {activeTab === 'wizard' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-purple)' }}>Logo Preference Wizard</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Step {wizardStep} of 4</span>
+            </div>
+
+            {/* Stepper Progress Bar */}
+            <div style={{ display: 'flex', gap: '0.25rem', height: '4px', background: 'var(--bg-tertiary)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ flex: 1, background: 'var(--accent-purple)', opacity: wizardStep >= 1 ? 1 : 0.2 }}></div>
+              <div style={{ flex: 1, background: 'var(--accent-purple)', opacity: wizardStep >= 2 ? 1 : 0.2 }}></div>
+              <div style={{ flex: 1, background: 'var(--accent-purple)', opacity: wizardStep >= 3 ? 1 : 0.2 }}></div>
+              <div style={{ flex: 1, background: 'var(--accent-purple)', opacity: wizardStep >= 4 ? 1 : 0.2 }}></div>
+            </div>
+
+            {/* STEP 1: BRAND INFO */}
+            {wizardStep === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Let's start with your company brand naming details. You can split it into two parts for a modern look.
+                </p>
+
+                <div className="toggle-wrapper" style={{ marginBottom: '0.25rem' }}>
+                  <span className="toggle-label">Split Brand Text</span>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={wizSplit}
+                      onChange={(e) => setWizSplit(e.target.checked)}
+                    />
+                    <span className="slider-toggle"></span>
+                  </label>
+                </div>
+
+                {!wizSplit ? (
+                  <div className="control-group">
+                    <label>Company Name</label>
+                    <input
+                      type="text"
+                      className="input-text"
+                      value={wizCompanyName}
+                      onChange={(e) => setWizCompanyName(e.target.value)}
+                      placeholder="e.g. Reezma Tech"
+                    />
+                  </div>
+                ) : (
+                  <div className="control-row">
+                    <div className="control-group">
+                      <label>Part 1 (Bold)</label>
+                      <input
+                        type="text"
+                        className="input-text"
+                        value={wizPart1}
+                        onChange={(e) => setWizPart1(e.target.value)}
+                        placeholder="e.g. Reezma"
+                      />
+                    </div>
+                    <div className="control-group">
+                      <label>Part 2 (Light)</label>
+                      <input
+                        type="text"
+                        className="input-text"
+                        value={wizPart2}
+                        onChange={(e) => setWizPart2(e.target.value)}
+                        placeholder="e.g. Tech"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="control-group">
+                  <label>Tagline / Subtitle</label>
+                  <input
+                    type="text"
+                    className="input-text"
+                    value={wizTagline}
+                    onChange={(e) => setWizTagline(e.target.value)}
+                    placeholder="e.g. INNOVATIVE DESIGN"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: PERSONALITY */}
+            {wizardStep === 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                  Select the core design style and personality that represents your brand.
+                </p>
+
+                {(
+                  [
+                    { id: 'developer', name: 'Classic Developer', desc: 'Code bracket highlights, terminal typography, blinking cursors.' },
+                    { id: 'cyberpunk', name: 'Neon Cyberpunk', desc: 'Vibrant glowing shadows, tech overlays, futuristic font.' },
+                    { id: 'minimal', name: 'Modern Minimal', desc: 'Clean, flat corporate layouts, sans-serif typography.' },
+                    { id: 'luxury', name: 'Luxury & Prestige', desc: 'Serif fonts, fine borders, high elegance.' },
+                    { id: 'eco', name: 'Eco Tech', desc: 'Organic circular structures, sustainable balanced layouts.' }
+                  ] as const
+                ).map((style) => (
+                  <button
+                    key={style.id}
+                    className={`preset-card ${wizPersonality === style.id ? 'active' : ''}`}
+                    onClick={() => setWizPersonality(style.id)}
+                    style={{ padding: '0.75rem' }}
+                  >
+                    <div className="preset-name" style={{ fontSize: '0.85rem' }}>{style.name}</div>
+                    <div className="preset-desc" style={{ fontSize: '0.7rem' }}>{style.desc}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* STEP 3: COLOR PALETTE */}
+            {wizardStep === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                  Select a color scheme preference that matches your style.
+                </p>
+
+                {(
+                  [
+                    { id: 'cyan', name: 'Electric Cyan', preview: 'linear-gradient(135deg, #03c6fc, #a855f7)', desc: 'Neon cyan mixed with tech purple.' },
+                    { id: 'gold', name: 'Gold Rush', preview: 'linear-gradient(135deg, #dfa735, #f8e08f)', desc: 'Rich premium metallic gold tones.' },
+                    { id: 'green', name: 'Forest Green', preview: 'linear-gradient(135deg, #a3e635, #10b981)', desc: 'Clean bio-tech and emerald greens.' },
+                    { id: 'pink', name: 'Cyber Pink', preview: 'linear-gradient(135deg, #ff007f, #00f0ff)', desc: 'Vaporwave magenta and cyber cyan.' },
+                    { id: 'mono', name: 'Classic Mono', preview: 'linear-gradient(135deg, #ffffff, #94a3b8)', desc: 'Stark high-contrast white and dark slate.' }
+                  ] as const
+                ).map((pal) => (
+                  <button
+                    key={pal.id}
+                    className={`preset-card ${wizPalette === pal.id ? 'active' : ''}`}
+                    onClick={() => setWizPalette(pal.id)}
+                    style={{ padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                  >
+                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: pal.preview, flexShrink: 0 }}></div>
+                    <div style={{ flex: 1 }}>
+                      <div className="preset-name" style={{ fontSize: '0.85rem', margin: 0 }}>{pal.name}</div>
+                      <div className="preset-desc" style={{ fontSize: '0.7rem' }}>{pal.desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* STEP 4: PRIMARY SYMBOL */}
+            {wizardStep === 4 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                  Choose a vector category to accent your logo.
+                </p>
+
+                {(
+                  [
+                    { id: 'dev', name: 'Developer Symbols', desc: 'Code bracket tags, terminals, command line.' },
+                    { id: 'infra', name: 'Infrastructure', desc: 'Hardware CPU chips, computer boards, circuits.' },
+                    { id: 'corporate', name: 'Trust & Protection', desc: 'Secure shields, internet globes, network keys.' },
+                    { id: 'creative', name: 'Creativity & Energy', desc: 'Lightning zaps, rating stars, eco leaves.' },
+                    { id: 'none', name: 'No Symbol', desc: 'Wordmark only. Clean typography-focused logo.' }
+                  ] as const
+                ).map((sym) => (
+                  <button
+                    key={sym.id}
+                    className={`preset-card ${wizSymbolGroup === sym.id ? 'active' : ''}`}
+                    onClick={() => setWizSymbolGroup(sym.id)}
+                    style={{ padding: '0.75rem' }}
+                  >
+                    <div className="preset-name" style={{ fontSize: '0.85rem' }}>{sym.name}</div>
+                    <div className="preset-desc" style={{ fontSize: '0.7rem' }}>{sym.desc}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* NAVIGATION BUTTONS */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              {wizardStep > 1 && (
+                <button
+                  className="btn-secondary"
+                  style={{ flex: 1, padding: '0.5rem' }}
+                  onClick={() => setWizardStep(prev => prev - 1)}
+                >
+                  Back
+                </button>
+              )}
+              {wizardStep < 4 ? (
+                <button
+                  className="btn-primary"
+                  style={{ flex: 2, padding: '0.5rem', background: 'var(--accent-purple)', boxShadow: '0 4px 10px rgba(168, 85, 247, 0.2)', border: 'none' }}
+                  onClick={() => setWizardStep(prev => prev + 1)}
+                >
+                  Next Step
+                </button>
+              ) : (
+                <button
+                  className="btn-primary"
+                  style={{ flex: 2, padding: '0.5rem', background: 'linear-gradient(135deg, var(--accent-purple) 0%, #7c3aed 100%)', boxShadow: '0 4px 14px rgba(168, 85, 247, 0.35)', border: 'none' }}
+                  onClick={handleGenerateLogo}
+                >
+                  Generate Logo ✨
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        
         {/* PRESETS TAB */}
         {activeTab === 'presets' && (
-          <div className="presets-grid">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset.id}
-                className={`preset-card ${activePresetId === preset.id ? 'active' : ''}`}
-                onClick={() => onSelectPreset(preset)}
-              >
-                <div className="preset-name">{preset.name}</div>
-                <div className="preset-desc">{preset.description}</div>
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="category-tabs" style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-light)', marginBottom: '0.25rem' }}>
+              {(['all', 'classic', 'cyberpunk', 'corporate', 'creative'] as const).map((cat) => (
+                <button
+                  key={cat}
+                  className={`btn-secondary ${presetCategory === cat ? 'active' : ''}`}
+                  style={{
+                    padding: '0.35rem 0.65rem',
+                    fontSize: '0.75rem',
+                    textTransform: 'capitalize',
+                    background: presetCategory === cat ? 'rgba(3, 198, 252, 0.15)' : 'var(--bg-tertiary)',
+                    borderColor: presetCategory === cat ? 'var(--accent-blue)' : 'var(--border-light)',
+                    color: presetCategory === cat ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                  }}
+                  onClick={() => setPresetCategory(cat)}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="presets-grid" style={{ marginTop: '0.5rem' }}>
+              {PRESETS.filter(p => presetCategory === 'all' || p.category === presetCategory).map((preset) => (
+                <button
+                  key={preset.id}
+                  className={`preset-card ${activePresetId === preset.id ? 'active' : ''}`}
+                  onClick={() => onSelectPreset(preset)}
+                >
+                  <div className="preset-name">{preset.name}</div>
+                  <div className="preset-desc">{preset.description}</div>
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         {/* TEXT TAB */}
         {activeTab === 'text' && (
           <>
-            <div className="control-group">
-              <label>Company Name</label>
-              <input
-                type="text"
-                className="input-text"
-                value={config.companyName}
-                onChange={(e) => handleInputChange('companyName', e.target.value)}
-              />
+            <div className="toggle-wrapper" style={{ marginBottom: '0.25rem' }}>
+              <span className="toggle-label">Split Brand Text</span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={config.companyNameSplit}
+                  onChange={(e) => handleInputChange('companyNameSplit', e.target.checked)}
+                />
+                <span className="slider-toggle"></span>
+              </label>
             </div>
+
+            {!config.companyNameSplit ? (
+              <div className="control-group">
+                <label>Company Name</label>
+                <input
+                  type="text"
+                  className="input-text"
+                  value={config.companyName}
+                  onChange={(e) => handleInputChange('companyName', e.target.value)}
+                />
+              </div>
+            ) : (
+              <div className="control-row">
+                <div className="control-group">
+                  <label>Brand Text Part 1</label>
+                  <input
+                    type="text"
+                    className="input-text"
+                    value={config.companyNamePart1}
+                    onChange={(e) => handleInputChange('companyNamePart1', e.target.value)}
+                  />
+                </div>
+                <div className="control-group">
+                  <label>Brand Text Part 2</label>
+                  <input
+                    type="text"
+                    className="input-text"
+                    value={config.companyNamePart2}
+                    onChange={(e) => handleInputChange('companyNamePart2', e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="toggle-wrapper">
               <span className="toggle-label">Show Brackets</span>
@@ -172,7 +691,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             )}
 
             <div className="control-group">
-              <label>Font Family</label>
+              <label>{config.companyNameSplit ? "Font Family (Part 1)" : "Font Family"}</label>
               <select
                 className="select-input"
                 value={config.companyNameFont}
@@ -185,6 +704,23 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 ))}
               </select>
             </div>
+
+            {config.companyNameSplit && (
+              <div className="control-group">
+                <label>Font Family (Part 2)</label>
+                <select
+                  className="select-input"
+                  value={config.companyNameFontPart2}
+                  onChange={(e) => handleInputChange('companyNameFontPart2', e.target.value)}
+                >
+                  {FONTS.map((font) => (
+                    <option key={font.name} value={font.value}>
+                      {font.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div className="control-row">
               <div className="control-group">
@@ -216,8 +752,91 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </div>
             </div>
 
+            <div className="control-row">
+              <div className="control-group">
+                <label>{config.companyNameSplit ? "Font Weight (Part 1)" : "Font Weight"}</label>
+                <select
+                  className="select-input"
+                  value={config.companyNameWeight}
+                  onChange={(e) => handleInputChange('companyNameWeight', e.target.value)}
+                >
+                  <option value="normal">Normal (400)</option>
+                  <option value="bold">Bold (700)</option>
+                  <option value="900">Black (900)</option>
+                  <option value="300">Light (300)</option>
+                </select>
+              </div>
+              
+              {config.companyNameSplit ? (
+                <div className="control-group">
+                  <label>Font Weight (Part 2)</label>
+                  <select
+                    className="select-input"
+                    value={config.companyNameWeightPart2}
+                    onChange={(e) => handleInputChange('companyNameWeightPart2', e.target.value)}
+                  >
+                    <option value="normal">Normal (400)</option>
+                    <option value="bold">Bold (700)</option>
+                    <option value="900">Black (900)</option>
+                    <option value="300">Light (300)</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="control-group">
+                  <label>Cursor Color</label>
+                  <div className="color-picker-wrapper">
+                    <input
+                      type="color"
+                      className="color-input"
+                      value={config.cursorColor}
+                      onChange={(e) => handleInputChange('cursorColor', e.target.value)}
+                      disabled={!config.cursorShow}
+                    />
+                    <span className="color-hex-label" style={{ opacity: config.cursorShow ? 1 : 0.4 }}>
+                      {config.cursorColor}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {config.companyNameSplit && (
+              <div className="control-row">
+                <div className="control-group">
+                  <label>Cursor Color</label>
+                  <div className="color-picker-wrapper">
+                    <input
+                      type="color"
+                      className="color-input"
+                      value={config.cursorColor}
+                      onChange={(e) => handleInputChange('cursorColor', e.target.value)}
+                      disabled={!config.cursorShow}
+                    />
+                    <span className="color-hex-label" style={{ opacity: config.cursorShow ? 1 : 0.4 }}>
+                      {config.cursorColor}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="toggle-wrapper">
-              <span className="toggle-label">Text Color Gradient</span>
+              <span className="toggle-label">Blinking Cursor</span>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={config.cursorShow}
+                  onChange={(e) => handleInputChange('cursorShow', e.target.checked)}
+                />
+                <span className="slider-toggle"></span>
+              </label>
+            </div>
+
+            <hr style={{ border: 'none', borderBottom: '1px solid var(--border-light)', margin: '0.5rem 0' }} />
+
+            {/* COLOR OPTIONS */}
+            <div className="toggle-wrapper">
+              <span className="toggle-label">{config.companyNameSplit ? "Gradient Color (Part 1)" : "Text Color Gradient"}</span>
               <label className="switch">
                 <input
                   type="checkbox"
@@ -231,7 +850,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             {config.companyNameGradient ? (
               <div className="control-row">
                 <div className="control-group">
-                  <label>Gradient Start</label>
+                  <label>Gradient Start (Part 1)</label>
                   <div className="color-picker-wrapper">
                     <input
                       type="color"
@@ -243,7 +862,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   </div>
                 </div>
                 <div className="control-group">
-                  <label>Gradient End</label>
+                  <label>Gradient End (Part 1)</label>
                   <div className="color-picker-wrapper">
                     <input
                       type="color"
@@ -257,7 +876,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </div>
             ) : (
               <div className="control-group">
-                <label>Text Color</label>
+                <label>Text Color {config.companyNameSplit && "(Part 1)"}</label>
                 <div className="color-picker-wrapper">
                   <input
                     type="color"
@@ -270,47 +889,63 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </div>
             )}
 
-            <div className="control-row">
-              <div className="control-group">
-                <label>Font Weight</label>
-                <select
-                  className="select-input"
-                  value={config.companyNameWeight}
-                  onChange={(e) => handleInputChange('companyNameWeight', e.target.value)}
-                >
-                  <option value="normal">Normal (400)</option>
-                  <option value="bold">Bold (700)</option>
-                </select>
-              </div>
-              
-              <div className="control-group">
-                <label>Cursor Color</label>
-                <div className="color-picker-wrapper">
-                  <input
-                    type="color"
-                    className="color-input"
-                    value={config.cursorColor}
-                    onChange={(e) => handleInputChange('cursorColor', e.target.value)}
-                    disabled={!config.cursorShow}
-                  />
-                  <span className="color-hex-label" style={{ opacity: config.cursorShow ? 1 : 0.4 }}>
-                    {config.cursorColor}
-                  </span>
+            {config.companyNameSplit && (
+              <>
+                <div className="toggle-wrapper" style={{ marginTop: '0.5rem' }}>
+                  <span className="toggle-label">Gradient Color (Part 2)</span>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={config.companyNameGradientPart2}
+                      onChange={(e) => handleInputChange('companyNameGradientPart2', e.target.checked)}
+                    />
+                    <span className="slider-toggle"></span>
+                  </label>
                 </div>
-              </div>
-            </div>
 
-            <div className="toggle-wrapper">
-              <span className="toggle-label">Blinking Cursor</span>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={config.cursorShow}
-                  onChange={(e) => handleInputChange('cursorShow', e.target.checked)}
-                />
-                <span className="slider-toggle"></span>
-              </label>
-            </div>
+                {config.companyNameGradientPart2 ? (
+                  <div className="control-row">
+                    <div className="control-group">
+                      <label>Gradient Start (Part 2)</label>
+                      <div className="color-picker-wrapper">
+                        <input
+                          type="color"
+                          className="color-input"
+                          value={config.companyNameGradientStartPart2}
+                          onChange={(e) => handleInputChange('companyNameGradientStartPart2', e.target.value)}
+                        />
+                        <span className="color-hex-label">{config.companyNameGradientStartPart2}</span>
+                      </div>
+                    </div>
+                    <div className="control-group">
+                      <label>Gradient End (Part 2)</label>
+                      <div className="color-picker-wrapper">
+                        <input
+                          type="color"
+                          className="color-input"
+                          value={config.companyNameGradientEndPart2}
+                          onChange={(e) => handleInputChange('companyNameGradientEndPart2', e.target.value)}
+                        />
+                        <span className="color-hex-label">{config.companyNameGradientEndPart2}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="control-group">
+                    <label>Text Color (Part 2)</label>
+                    <div className="color-picker-wrapper">
+                      <input
+                        type="color"
+                        className="color-input"
+                        value={config.companyNameColorPart2}
+                        onChange={(e) => handleInputChange('companyNameColorPart2', e.target.value)}
+                      />
+                      <span className="color-hex-label">{config.companyNameColorPart2}</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             <hr style={{ border: 'none', borderBottom: '1px solid var(--border-light)', margin: '0.5rem 0' }} />
 
@@ -419,37 +1054,95 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             {config.iconShow && (
               <>
                 <div className="control-group">
-                  <label>Search Icons</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      className="input-text icon-search-bar"
-                      style={{ width: '100%', paddingLeft: '2.25rem' }}
-                      placeholder="Search CPU, terminal, globe..."
-                      value={iconSearch}
-                      onChange={(e) => setIconSearch(e.target.value)}
-                    />
-                    <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-muted)' }} />
+                  <label>Icon Source</label>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <button
+                      className={`btn-secondary ${config.iconName !== 'custom' ? 'active' : ''}`}
+                      style={{
+                        flex: 1,
+                        fontSize: '0.8rem',
+                        padding: '0.4rem',
+                        background: config.iconName !== 'custom' ? 'rgba(3, 198, 252, 0.1)' : 'var(--bg-tertiary)',
+                        borderColor: config.iconName !== 'custom' ? 'var(--accent-blue)' : 'var(--border-light)',
+                      }}
+                      onClick={() => handleInputChange('iconName', 'Terminal')}
+                    >
+                      Preset Icons
+                    </button>
+                    <button
+                      className={`btn-secondary ${config.iconName === 'custom' ? 'active' : ''}`}
+                      style={{
+                        flex: 1,
+                        fontSize: '0.8rem',
+                        padding: '0.4rem',
+                        background: config.iconName === 'custom' ? 'rgba(3, 198, 252, 0.1)' : 'var(--bg-tertiary)',
+                        borderColor: config.iconName === 'custom' ? 'var(--accent-blue)' : 'var(--border-light)',
+                      }}
+                      onClick={() => handleInputChange('iconName', 'custom')}
+                    >
+                      Custom SVG
+                    </button>
                   </div>
                 </div>
 
-                <div className="icon-selector-grid">
-                  {filteredIcons.map((name) => {
-                    const IconElem = ICON_MAP[name];
-                    return (
-                      <button
-                        key={name}
-                        title={name}
-                        className={`icon-select-btn ${config.iconName === name ? 'active' : ''}`}
-                        onClick={() => handleInputChange('iconName', name)}
-                      >
-                        <IconElem size={20} />
-                      </button>
-                    );
-                  })}
-                </div>
+                {config.iconName === 'custom' ? (
+                  <div className="control-group" style={{ padding: '1rem', background: 'rgba(11, 15, 25, 0.4)', borderRadius: '6px', border: '1px dashed var(--border-light)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <label style={{ cursor: 'pointer', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
+                      <Upload size={24} color="var(--accent-blue)" />
+                      <span style={{ color: 'var(--accent-blue)', fontWeight: 600, fontSize: '0.85rem' }}>Upload Brand SVG File</span>
+                      <input
+                        type="file"
+                        accept=".svg"
+                        style={{ display: 'none' }}
+                        onChange={handleSvgUpload}
+                      />
+                    </label>
+                    {config.customIconSvg ? (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--accent-green)', textAlign: 'center', marginTop: '0.5rem', fontWeight: 500 }}>
+                        ✓ Custom SVG Active ({config.customIconViewBox})
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.70rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>
+                        Supports custom shapes & vectors. Color controls will apply.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="control-group">
+                      <label>Search Icons</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          className="input-text icon-search-bar"
+                          style={{ width: '100%', paddingLeft: '2.25rem' }}
+                          placeholder="Search CPU, terminal, globe..."
+                          value={iconSearch}
+                          onChange={(e) => setIconSearch(e.target.value)}
+                        />
+                        <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-muted)' }} />
+                      </div>
+                    </div>
 
-                <div className="control-row">
+                    <div className="icon-selector-grid">
+                      {filteredIcons.map((name) => {
+                        const IconElem = ICON_MAP[name];
+                        return (
+                          <button
+                            key={name}
+                            title={name}
+                            className={`icon-select-btn ${config.iconName === name ? 'active' : ''}`}
+                            onClick={() => handleInputChange('iconName', name)}
+                          >
+                            <IconElem size={20} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                <div className="control-row" style={{ marginTop: '0.5rem' }}>
                   <div className="control-group">
                     <label>Icon Position</label>
                     <select
@@ -669,7 +1362,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <input
                   type="color"
                   className="color-input"
-                  value={config.shadowColor.startsWith('rgba') ? '#03c6fc' : config.shadowColor} // simple hex map for raw picker
+                  value={config.shadowColor.startsWith('rgba') ? '#03c6fc' : config.shadowColor}
                   onChange={(e) => handleInputChange('shadowColor', e.target.value)}
                 />
                 <span className="color-hex-label">{config.shadowColor}</span>

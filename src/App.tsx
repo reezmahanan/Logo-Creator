@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG } from './presets';
 import { Navbar } from './components/Navbar';
 import { ControlPanel } from './components/ControlPanel';
 import { LogoCanvas } from './components/LogoCanvas';
+import { deserializeConfig } from './utils/serialization';
 import { 
   ZoomIn, 
   ZoomOut, 
@@ -16,6 +17,19 @@ import './App.css';
 const LOCAL_STORAGE_KEY = 'reezma-logo-creator-config';
 
 const getInitialConfig = (): LogoConfig => {
+  // Check URL hash first
+  if (window.location.hash && window.location.hash.startsWith('#share=')) {
+    const hashData = window.location.hash.substring('#share='.length);
+    const parsed = deserializeConfig(hashData);
+    if (parsed) {
+      return {
+        ...DEFAULT_CONFIG,
+        ...parsed,
+      };
+    }
+  }
+
+  // Fallback to local storage
   const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (saved) {
     try {
@@ -30,8 +44,9 @@ const getInitialConfig = (): LogoConfig => {
 function App() {
   const [config, setConfig] = useState<LogoConfig>(getInitialConfig);
   const [activePresetId, setActivePresetId] = useState<string | null>(() => {
-    // If there is saved config, clear active preset highlight so it shows custom state
-    return localStorage.getItem(LOCAL_STORAGE_KEY) ? null : 'reezma-original';
+    const hasHash = window.location.hash && window.location.hash.startsWith('#share=');
+    if (hasHash) return null;
+    return localStorage.getItem(LOCAL_STORAGE_KEY) ? null : 'Original';
   });
   const [showGrid, setShowGrid] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -40,6 +55,26 @@ function App() {
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(config));
   }, [config]);
+
+  // Listen to hash changes (e.g. back button or entering new shared URL)
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash && window.location.hash.startsWith('#share=')) {
+        const hashData = window.location.hash.substring('#share='.length);
+        const parsed = deserializeConfig(hashData);
+        if (parsed) {
+          setConfig(prev => ({
+            ...prev,
+            ...parsed
+          }));
+          setActivePresetId(null);
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
   
   // History state for Undo/Redo
   const [history, setHistory] = useState<LogoConfig[]>([DEFAULT_CONFIG]);
@@ -111,7 +146,7 @@ function App() {
   const handleReset = () => {
     isHistoryActionRef.current = true;
     setConfig(DEFAULT_CONFIG);
-    setActivePresetId('reezma-original');
+    setActivePresetId('Original');
     
     const nextHistory = history.slice(0, historyIndex + 1);
     setHistory([...nextHistory, DEFAULT_CONFIG]);
