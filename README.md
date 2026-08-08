@@ -1,4 +1,4 @@
-#Logo Creator 
+## Logo Creator 
 
 <p align="center">
   <img src="https://github.com/reezmahanan/Logo-Creator/blob/main/screenshot.png" alt="Logo Creator Dashboard" width="100%"/>
